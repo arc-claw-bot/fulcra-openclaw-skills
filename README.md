@@ -37,6 +37,12 @@ Raw biometric data export formatted for LLM reasoning. Dumps all available Fulcr
 
 ```bash
 pip install fulcra-api pandas numpy
+```
+
+Run Fulcra CLI commands through `uv tool run` when a workflow needs the CLI:
+
+```bash
+uv tool run fulcra-api --help
 
 # Configure Fulcra token
 export FULCRA_TOKEN_PATH="~/.config/fulcra/token.json"

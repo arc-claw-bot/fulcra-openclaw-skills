@@ -1,0 +1,20 @@
+.env
+.secrets
+.venv/
+__pycache__/
+*.pyc
+*.key
+*.pem
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_ed25519
+service-account*.json
+
+# Local Fulcra credentials and generated analysis state
+.config/
+token.json
+credentials.json
+data/fulcra-analysis/
