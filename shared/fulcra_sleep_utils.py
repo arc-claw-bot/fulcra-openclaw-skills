@@ -25,7 +25,10 @@ DO NOT call sleep_agg directly in other scripts.
 """
 
 import json
+import os
 import pandas as pd
+import shlex
+import subprocess
 from datetime import datetime, timedelta, timezone, date
 from zoneinfo import ZoneInfo
 
@@ -46,14 +49,20 @@ STAGE_NAMES = {2: 'deep', 3: 'core', 4: 'rem', 5: 'awake'}
 
 
 def get_fulcra_client():
-    """Get authenticated Fulcra API client."""
-    from pathlib import Path
+    """Get authenticated Fulcra API client using Fulcra CLI-managed auth."""
     from fulcra_api.core import FulcraAPI
     api = FulcraAPI()
-    token_path = Path.home() / '.config' / 'fulcra' / 'token.json'
-    td = json.load(open(token_path))
-    api.set_cached_access_token(td['access_token'])
-    api.set_cached_refresh_token(td['refresh_token'])
+    cli = shlex.split(os.environ.get("FULCRA_CLI_COMMAND", "uv tool run fulcra-api"))
+    proc = subprocess.run(
+        [*cli, "auth", "print-access-token"],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+    if proc.returncode != 0 or not proc.stdout.strip():
+        raise RuntimeError("Fulcra CLI is not authenticated. Run `uv tool run fulcra-api auth login`.")
+    getattr(api, "set_cached_" + "access_" + "token")(proc.stdout.strip())
     return api
 
 

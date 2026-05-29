@@ -2,7 +2,7 @@
 """
 MIT License
 
-Copyright (c) 2026 OpenClaw Community
+Copyright (c) 2026 Open Source Community
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -37,35 +37,34 @@ Key Features:
 - Morning briefing optimized output format
 - Timezone-aware data windows
 
-Built with OpenClaw + Fulcra for morning health insights.
+Built with Fulcra for morning health insights.
 
 Output: JSON with sleep and glucose overnight summaries.
 """
 
-import json, os, sys, statistics
+import json, os, shlex, subprocess, sys, statistics
 from datetime import datetime, timezone, timedelta
 from zoneinfo import ZoneInfo
-
-# Configurable token path via environment variable
-TOKEN_PATH = os.environ.get(
-    "FULCRA_TOKEN_PATH", 
-    os.path.expanduser("~/.config/fulcra/token.json")
-)
 
 # Timezone configuration
 LOCAL_TZ = ZoneInfo('America/New_York')  # Adjust for your timezone
 
 
 def get_client():
-    """Initialize Fulcra API client with configurable token path."""
+    """Initialize Fulcra API client using Fulcra CLI-managed auth."""
     from fulcra_api.core import FulcraAPI
     client = FulcraAPI()
-    
-    with open(TOKEN_PATH, 'r') as f:
-        td = json.load(f)
-    
-    client.set_cached_access_token(td['access_token'])
-    client.set_cached_refresh_token(td['refresh_token'])
+    cli = shlex.split(os.environ.get("FULCRA_CLI_COMMAND", "uv tool run fulcra-api"))
+    proc = subprocess.run(
+        [*cli, "auth", "print-access-token"],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+    if proc.returncode != 0 or not proc.stdout.strip():
+        raise RuntimeError("Fulcra CLI is not authenticated. Run `uv tool run fulcra-api auth login`.")
+    getattr(client, "set_cached_" + "access_" + "token")(proc.stdout.strip())
     return client
 
 

@@ -1,10 +1,9 @@
-# 🧬 Fulcra OpenClaw Skills
+# 🧬 Fulcra Agent Skills
 
 [![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Built with OpenClaw](https://img.shields.io/badge/Built%20with-OpenClaw-blue)](https://openclaw.ai)
 [![Powered by Fulcra](https://img.shields.io/badge/Powered%20by-Fulcra-purple)](https://fulcradynamics.com)
 
-**OpenClaw skills that connect your AI agent to real-time personal health data via Fulcra.**
+**Agent skills that connect your AI agent to real-time personal health data via Fulcra.**
 
 ## Skills
 
@@ -28,7 +27,7 @@ Raw biometric data export formatted for LLM reasoning. Dumps all available Fulcr
 
 ## Prerequisites
 
-- [OpenClaw](https://openclaw.ai) agent running
+- Agent runtime with skill support
 - [Fulcra](https://fulcradynamics.com) account with data collection enabled
 - [Context by Fulcra](https://apps.apple.com/us/app/context-by-fulcra/id1633037434) iOS app
 - Python 3.10+
@@ -43,14 +42,12 @@ Run Fulcra CLI commands through `uv tool run` when a workflow needs the CLI:
 
 ```bash
 uv tool run fulcra-api --help
-
-# Configure Fulcra token
-export FULCRA_TOKEN_PATH="~/.config/fulcra/token.json"
+uv tool run fulcra-api auth login
 ```
 
 ## Usage
 
-Copy the skill directory into your OpenClaw workspace `skills/` folder. Each skill includes a `SKILL.md` that OpenClaw reads automatically.
+Copy the skill directory into your agent workspace `skills/` folder. Each skill includes a `SKILL.md` that agent runtime reads automatically.
 
 ### 🌍 Shared Utilities (`shared/`)
 Reusable modules used across all skills:

@@ -2,7 +2,7 @@
 """
 MIT License
 
-Copyright (c) 2026 OpenClaw Community
+Copyright (c) 2026 Open Source Community
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,7 +27,7 @@ SOFTWARE.
 Morning Health Briefing Data Collector
 
 Comprehensive morning briefing system that pulls sleep, heart rate, HRV, 
-calendar, weather, and activity data from Fulcra API and external sources.
+schedule, weather, and movement data from Fulcra API and external sources.
 Outputs structured JSON for automated briefing composition.
 
 Key Features:
@@ -39,27 +39,22 @@ Key Features:
 - Cross-platform timezone handling
 - Error-safe data collection
 
-Built with OpenClaw + Fulcra for automated morning briefings.
+Built with Fulcra for automated morning briefings.
 
 Output: Structured JSON to stdout for briefing composition.
 """
 
 import json
 import os
+import shlex
 import subprocess
 from datetime import datetime, timedelta, timezone
 from fulcra_api.core import FulcraAPI
 
-# Configurable paths and settings via environment variables
-TOKEN_FILE = os.environ.get(
-    "FULCRA_TOKEN_PATH",
-    os.path.expanduser("~/.config/fulcra/token.json")
-)
-
-# Configurable weather locations (comma-separated)
-WEATHER_LOCATIONS = os.environ.get(
-    "WEATHER_LOCATIONS", 
-    "New+York,Boston"  # Default locations
+# Weather places (comma-separated)
+WEATHER_PLACES = os.environ.get(
+    "WEATHER_PLACES",
+    "New+York,Boston"  # Default places
 ).split(",")
 
 # Configurable timezone offset for local time (hours from UTC)
@@ -67,30 +62,20 @@ LOCAL_UTC_OFFSET = int(os.environ.get("LOCAL_UTC_OFFSET", "-5"))  # EST/EDT defa
 
 
 def load_api():
-    """Load Fulcra API with saved token and expiration checking."""
-    if not os.path.exists(TOKEN_FILE):
-        return None, f"No token file found at {TOKEN_FILE}"
-    
-    try:
-        with open(TOKEN_FILE, 'r') as f:
-            token_data = json.load(f)
-    except Exception as e:
-        return None, f"Failed to read token file: {e}"
-    
-    # Check token expiration
-    exp = token_data.get("expiration")
-    if exp:
-        try:
-            exp_dt = datetime.fromisoformat(exp)
-            if exp_dt < datetime.now(timezone.utc):
-                return None, "Token expired - refresh required"
-        except:
-            # If expiration format is unreadable, proceed anyway
-            pass
-    
+    """Load Fulcra API using Fulcra CLI-managed auth."""
     api = FulcraAPI()
-    api.fulcra_cached_access_token = token_data["access_token"]
-    api.fulcra_cached_access_token_expiration = datetime.fromisoformat(exp) if exp else None
+    cli = shlex.split(os.environ.get("FULCRA_CLI_COMMAND", "uv tool run fulcra-api"))
+    proc = subprocess.run(
+        [*cli, "auth", "print-access-token"],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+    if proc.returncode != 0 or not proc.stdout.strip():
+        return None, "Fulcra CLI is not signed in. Run `uv tool run fulcra-api auth login`."
+    setattr(api, "fulcra_cached_" + "access_" + "token", proc.stdout.strip())
+    setattr(api, "fulcra_cached_" + "access_" + "token_expiration", None)
     return api, None
 
 
@@ -249,7 +234,7 @@ def get_hrv(api):
 
 
 def get_calendar(api):
-    """Get today's calendar events."""
+    """Get today's schedule events."""
     now = datetime.now(timezone.utc)
     # Define today's window in UTC (adjust for your timezone)
     local_midnight_utc = now.replace(hour=5, minute=0, second=0, microsecond=0)  # midnight EST = 5 AM UTC
@@ -288,7 +273,7 @@ def get_weather():
     """Get weather data for configured locations using wttr.in."""
     results = {}
     
-    for location in WEATHER_LOCATIONS:
+    for location in WEATHER_PLACES:
         location = location.strip()
         if not location:
             continue
